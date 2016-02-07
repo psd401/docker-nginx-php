@@ -6,6 +6,7 @@ server {
 
     # Make site accessible from http://set-ip-address.xip.io
     server_name localhost;
+    server_name_in_redirect off;
 
     access_log /var/log/nginx/localhost.com-access.log;
     error_log  /var/log/nginx/localhost.com-error.log error;
@@ -13,12 +14,16 @@ server {
     charset utf-8;
 
     location / {
-        try_files $uri $uri/ /index.html /index.php?$query_string;
+        try_files $uri $uri/ /index.html /index.php?$args;
     }
 
     location = /favicon.ico { log_not_found off; access_log off; }
     location = /robots.txt  { access_log off; log_not_found off; }
-
+    location ~* /(images|cache|media|logs|tmp)/.*\.(php|pl|py|jsp|asp|sh|cgi)$ {
+        return 403;
+        error_page 403 /403_error.html;
+    }
+    
     error_page 404 /index.php;
 
     # pass the PHP scripts to php5-fpm
@@ -27,11 +32,15 @@ server {
     location ~ \.php$ {
         fastcgi_split_path_info ^(.+\.php)(/.+)$;
         # With php5-fpm:
-        fastcgi_pass unix:/var/run/php5-fpm.sock;
+        fastcgi_pass unix:/var/run/default-fpm.sock;
         fastcgi_index index.php;
         include fastcgi_params;
         include fastcgi.conf;
         fastcgi_param LARA_ENV local; # Environment variable for Laravel
+	fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+	fastcgi_param SERVER_NAME "my.psd401.net";
+	fastcgi_param SERVER_ADMIN "webmaster@psd401.net";
+	include /etc/nginx/fastcgi.conf;
         fastcgi_param HTTPS off;
     }
 
@@ -39,4 +48,12 @@ server {
     location ~ /\.ht {
         deny all;
     }
+
+    location ~* \.(ico|pdf|flv)$ {
+           expires 1y;
+    }
+
+   location ~* \.(js|css|png|jpg|jpeg|gif|swf|xml|txt)$ {
+           expires 14d;
+   }
 }
